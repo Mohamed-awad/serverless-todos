@@ -16,6 +16,7 @@ provider:
     TODOS_TABLE: todos
     S3_BUCKET: Todo-app-serverless-s3-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
+    AUTH_0_SECRET: 1MjY6d-vDvGjVbhaKBjVnru5u5QcEQpcv7-NPTsvWoiGBaoI_OqTL6mCc_jqlm8C
 
   iamRoleStatements:
     - Effect: Allow
@@ -38,7 +39,6 @@ functions:
           cors: true
 
   # TODO: Configure this function
-  GetTodos:
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
     events:
