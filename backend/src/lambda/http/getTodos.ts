@@ -13,13 +13,14 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
   const authSplit = authHeader.split(" ")
   const token = authSplit[1]
 
-  const todos = await documentClient.scan({
+  const todos = await documentClient.query({
     TableName: todosTable,
     FilterExpression: 'userId = :userId',
     ExpressionAttributeValues: {
       ':userId': parseUserId(token),
     },
   }).promise()
+  
   const items = todos.Items
   return {
     statusCode: 200,
