@@ -5,6 +5,10 @@ plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
   - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
+  - serverless-s3-local
+  - serverless-dynamodb-local
+  - serverless-offline
 
 provider:
   name: aws
@@ -18,6 +22,44 @@ provider:
     S3_BUCKET: todo-app-serverless-s3-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
     AUTH_0_SECRET: 1MjY6d-vDvGjVbhaKBjVnru5u5QcEQpcv7-NPTsvWoiGBaoI_OqTL6mCc_jqlm8C
+
+#TODO: add custom configuration
+custom:
+  serverless-offline:
+    host: 0.0.0.0
+    port: 4000
+  
+  dynamodb:
+    stages:
+      - dev
+    start:
+      migrate: true
+      noStart: true
+      host: localstack
+      port: 4569
+  
+  s3:
+    noStart: true
+    port: 4572
+    host: localstack
+    directory: /tmp
+  
+  serverless-iam-roles-per-function:
+    defaultInherit: true
+  
+  documentation:
+    api:
+      info:
+        version: v1.0.0
+        title: Serverless my todos app
+        description: Serverless todo app
+    models:
+      - name: CreateTodo
+        contentType: application/json
+        schema: ${file(models/create-todo-model.json)}
+      - name: UpdateTodo
+        contentType: application/json
+        schema: ${file(models/update-todo-model.json)}
 
 functions:
 
@@ -50,9 +92,11 @@ functions:
           cors: true
           authorizer: Auth
           reqValidatorName: RequestValidator
-          request:
-            schema:
-              application/json: ${file(models/create-todo-model.json)}
+          documentation:
+            summary: add new todo
+            description: add new todo
+            requestModels:
+              'application/json': CreateTodo
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -70,9 +114,11 @@ functions:
           cors: true
           authorizer: Auth
           reqValidatorName: RequestValidator
-          request:
-            schema:
-              application/json: ${file(models/update-todo-model.json)}
+          documentation:
+            summary: update todo
+            description: update todo
+            requestModels:
+              'application/json': UpdateTodo
     iamRoleStatements:
       - Effect: Allow
         Action:

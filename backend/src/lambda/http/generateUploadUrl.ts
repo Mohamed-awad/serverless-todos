@@ -2,51 +2,49 @@ import 'source-map-support/register'
 import { APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } from 'aws-lambda'
 import * as AWS from 'aws-sdk'
 import * as uuid from 'uuid'
+import * as AWSXRay from 'aws-xray-sdk';
+import * as middy from 'middy';
+import { cors } from 'middy/middlewares';
+import { setAttachmentUrl } from '../../businessLogic/todos-controller';
+import { createLogger } from '../../utils/logger';
 
-const documentClient = new AWS.DynamoDB.DocumentClient()
-const todosTable = process.env.TODOS_TABLE
-const s3Bucket = process.env.S3_BUCKET
-const urlExpiration = process.env.SIGNED_URL_EXPIRATION
+const XAWS = AWSXRay.captureAWS(AWS);
+let options: AWS.S3.Types.ClientConfiguration = { signatureVersion: 'v4', };
+const bucketName = process.env.S3_BUCKET
+const urlExpiration = parseInt(process.env.SIGNED_URL_EXPIRATION);
+const logger = createLogger('generateUploadUrlHandler');
+const s3bucket = new XAWS.S3(options);
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
 
+const generateUploadUrlHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent, ): Promise<APIGatewayProxyResult> => {
   // TODO: Return a presigned URL to upload a file for a TODO item with the provided id
-  const todoId = event.pathParameters.todoId
-  const imgId = uuid.v4()
-  const s3 = new AWS.S3({
-    signatureVersion: 'v4'
-  })
 
-  const url = s3.getSignedUrl('putObject', {
-    Bucket: s3Bucket,
+  logger.info('Generate upload url', event);
+
+  const todoId = event.pathParameters.todoId;
+  const authorization = event.headers.Authorization;
+  const split = authorization.split(' ');
+  const jwtToken = split[1];
+  const imgId = uuid.v4();
+
+  setAttachmentUrl(
+    todoId,
+    `https://${bucketName}.s3.amazonaws.com/${imgId}`,
+    jwtToken,
+  );
+
+  const uploadUrl = s3bucket.getSignedUrl('putObject', {
+    Bucket: bucketName,
     Key: imgId,
-    Expires: urlExpiration
-  })
-
-  const imgUrl = `https://${s3Bucket}.s3.amazonaws.com/${imgId}`
-
-  const updateUrlOnTodo = {
-    TableName: todosTable,
-    Key: {
-      "todoId": todoId
-    },
-    UpdateExpression: "set attachmentUrl = :imageUrl",
-    ExpressionAttributeValues: {
-      ":imageUrl": imgUrl
-    },
-    ReturnValues: "UPDATED"
-  }
-
-  await documentClient.update(updateUrlOnTodo).promise()
+    Expires: urlExpiration,
+  });
 
   return {
     statusCode: 201,
-    headers: {
-      'Access-Control-Allow-Origin': '*'
-    },
     body: JSON.stringify({
-      iamgeUrl: imgUrl,
-      uploadUrl: url
-    })
-  }
-}
+      uploadUrl,
+    }),
+  };
+};
+
+export const handler = middy(generateUploadUrlHandler).use(cors({ credentials: true }));

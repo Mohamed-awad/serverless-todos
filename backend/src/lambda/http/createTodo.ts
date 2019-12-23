@@ -1,39 +1,31 @@
 import 'source-map-support/register'
+import * as middy from 'middy'
+import {cors} from 'middy/middlewares'
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda'
-import * as AWS from 'aws-sdk'
-import * as uuid from 'uuid'
-import { parseUserId } from '../../auth/utils'
+import { CreateTodoRequest } from '../../requests/CreateTodoRequest';
+import { createTodo } from '../../businessLogic/todos-controller';
+import { createLogger } from '../../utils/logger';
 
-const documentClient = new AWS.DynamoDB.DocumentClient()
-const todosTable = process.env.TODOS_TABLE
+const logger = createLogger('createTodoHandler');
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+const createHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent,): Promise<APIGatewayProxyResult> => {
   // TODO: Implement creating a new TODO item
+  
+  logger.info('new todo item', event);
 
-  const todoId = uuid.v4()
-  const parsedBody = JSON.parse(event.body)
-  const authHeader = event.headers.Authorization
-  const authSplit = authHeader.split(" ")
-  const token = authSplit[1]
+  const newTodo: CreateTodoRequest = JSON.parse(event.body);
+  const authorization = event.headers.Authorization;
+  const split = authorization.split(' ');
+  const jwtToken = split[1];
 
-  const newTodo = {
-    todoId: todoId,
-    userId: parseUserId(token),
-    ...parsedBody
-  }
-
-  await documentClient.put({
-    TableName: todosTable,
-    Item: newTodo
-  }).promise()
-
+  const newItem = await createTodo(newTodo, jwtToken);
   return {
-    statusCode: 201,
-    headers: {
-      'Access-Control-Allow-Origin': '*'
-    },
-    body: JSON.stringify({
-      item: newTodo
-    })
-  }
-}
+      statusCode: 201,
+      body: JSON.stringify({
+          newItem,
+      }),
+  };
+};
+
+export const handler = middy(createHandler).use(cors({ credentials: true }),);  
+ 
