@@ -14,7 +14,7 @@ export class TodoAccessModel {
     const result = await this.documentClient
       .query({
         TableName: this.todosTable,
-        FilterExpression: 'userId = :userId',
+        KeyConditionExpression: 'userId = :userId',
         ExpressionAttributeValues: {
           ':userId': userId,
         },
@@ -100,11 +100,12 @@ export class TodoAccessModel {
       .promise();
   }
 
-  public async delete(todoId: string, createdAt: string): Promise<void> {
+  public async delete(todoId: string, createdAt: string, userId: string): Promise<void> {
     this.documentClient
       .delete({
         TableName: this.todosTable,
         Key: {
+          userId,
           todoId,
           createdAt,
         },
