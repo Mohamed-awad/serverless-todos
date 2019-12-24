@@ -74,14 +74,14 @@ export class TodoAccessModel {
         ExpressionAttributeNames: {
           '#n': 'name', 
         },
-        ReturnValues: 'UPDATED',
+        ReturnValues: 'UPDATED_NEW',
       })
       .promise();
   }
 
   public async setAttachmentUrl(
     todoId: string,
-    createdAt: string,
+    userId: string,
     attachmentUrl: string,
   ): Promise<void> {
     this.documentClient
@@ -89,25 +89,24 @@ export class TodoAccessModel {
         TableName: this.todosTable,
         Key: {
           todoId,
-          createdAt,
+          userId,
         },
         UpdateExpression: 'set attachmentUrl = :attachmentUrl',
         ExpressionAttributeValues: {
           ':attachmentUrl': attachmentUrl,
         },
-        ReturnValues: 'UPDATED',
+        ReturnValues: 'UPDATED_NEW',
       })
       .promise();
   }
 
-  public async delete(todoId: string, createdAt: string, userId: string): Promise<void> {
+  public async delete(todoId: string, userId: string): Promise<void> {
     this.documentClient
       .delete({
         TableName: this.todosTable,
         Key: {
           userId,
           todoId,
-          createdAt,
         },
       })
       .promise();

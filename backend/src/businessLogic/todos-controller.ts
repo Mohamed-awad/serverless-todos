@@ -49,7 +49,7 @@ export async function deleteTodo(
     const userId = parseUserId(jwtToken);
     const todo = await todoAccessModel.get(todoId, userId);
 
-    todoAccessModel.delete(todo.todoId, todo.createdAt, todo.userId);
+    await todoAccessModel.delete(todo.todoId, todo.userId);
 }
 
 export async function setAttachmentUrl(
@@ -60,5 +60,5 @@ export async function setAttachmentUrl(
     const userId = parseUserId(jwtToken);
     const todo = await todoAccessModel.get(todoId, userId);
 
-    todoAccessModel.setAttachmentUrl(todo.todoId, todo.createdAt, attachmentUrl);
+    todoAccessModel.setAttachmentUrl(todo.todoId, todo.userId, attachmentUrl);
 }
