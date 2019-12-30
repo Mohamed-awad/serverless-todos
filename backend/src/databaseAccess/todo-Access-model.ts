@@ -3,10 +3,20 @@ import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import { TodoItem } from '../models/TodoItem';
 import { TodoUpdate } from '../models/TodoUpdate';
 
+function createDynamoDBClient(): DocumentClient {
+  if (process.env.IS_OFFLINE) {
+      return new AWS.DynamoDB.DocumentClient({
+          region: 'localhost',
+          endpoint: 'localstack:4569',
+          sslEnabled: false,
+      });
+  }
+  return new AWS.DynamoDB.DocumentClient();
+}
 
 export class TodoAccessModel {
   public constructor(
-    private readonly documentClient: DocumentClient = new AWS.DynamoDB.DocumentClient(),
+    private readonly documentClient: DocumentClient = createDynamoDBClient(), //new AWS.DynamoDB.DocumentClient(),
     private readonly todosTable = process.env.TODOS_TABLE,
   ) { }
 

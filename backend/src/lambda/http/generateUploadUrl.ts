@@ -10,6 +10,15 @@ import { createLogger } from '../../utils/logger';
 
 const XAWS = AWSXRay.captureAWS(AWS);
 let options: AWS.S3.Types.ClientConfiguration = { signatureVersion: 'v4', };
+
+if (process.env.IS_OFFLINE) {
+  options = {
+      ...options,
+      s3ForcePathStyle: true,
+      endpoint: 'localstack:4572',
+  };
+}
+
 const bucketName = process.env.S3_BUCKET
 const urlExpiration = parseInt(process.env.SIGNED_URL_EXPIRATION);
 const logger = createLogger('generateUploadUrlHandler');
